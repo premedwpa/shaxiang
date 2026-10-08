@@ -36,6 +36,9 @@ pip install fastapi uvicorn
 python ear_server.py
 启动后终端会打印一张令牌表，记下 win-pc 那一行的 Token，例如：
 
+
+
+
 text
 +-------------------------------------------------+
 | role/device  | X-Token                          |
@@ -44,6 +47,10 @@ text
 | win-pc       | 06528388d8d6bd494d0c55f85c10a95d |
 | sandbox      | 70521028d08976d18f30eddd9d5fd06f |
 +-------------------------------------------------+
+
+
+
+
 2. 把服务端暴露到公网
 在服务端机器上运行：
 
@@ -56,6 +63,9 @@ text
 https://xxx.trycloudflare.com
 这就是你的云端地址。
 
+
+
+
 3. 在你的 Windows 电脑上启动 qidong.py
 先安装依赖：
 
@@ -67,10 +77,15 @@ powershell
 python qidong.py
 首次运行会提示你输入：
 
+
+
 text
 云端地址 (base_url): https://xxx.trycloudflare.com
 认证 Token: 06528388d8d6bd494d0c55f85c10a95d
 填完后会自动保存到 config.json。看到下面这行就表示上线成功：
+
+
+
 
 text
 ♡ 心跳已注册
