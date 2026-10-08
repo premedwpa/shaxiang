@@ -1,14 +1,14 @@
 # -*- coding: utf-8 -*-
-# qidong.py v5.0 —— 让云端 AI Agent 控制你的 Windows 电脑
+# qidong.py v5.1 —— 让云端 AI Agent 控制你的 Windows 电脑
 # =====================================================================
 # 任务类型：
 #   ping / read_file / write_file / list_dir / file_get / file_put
 #   shell / run_python / screenshot / keyboard / mouse / open / wait
 #
-# ⚠️ 首次运行会引导你填写 base_url 和 token，保存在本地 config.json 中。
+# ⚠️ 首次运行会引导你填写 base_url、token 和 device，保存在本地 config.json 中。
 # ⚠️ 运行本脚本 = 授权云端控制本机；Ctrl+C 或删除即收回权限。
 # =====================================================================
-__version__ = "5.0"
+__version__ = "5.1"
 
 import base64
 import json
@@ -35,7 +35,9 @@ LOG_FILE = os.path.join(SCRIPT_DIR, "qidong.log")
 DEFAULT_CONFIG = {
     "base_url": "",
     "token": "",
+    "device": "win-pc",
     "poll_interval": 2,
+    "heartbeat_interval": 30,
     "max_file_size": 20 * 1024 * 1024,
     "work_dir": "",
     "allow_shell": False,
@@ -92,11 +94,13 @@ def load_config():
         except Exception as e:
             logger.warning(f"读取配置文件失败：{e}")
 
-    # 2. 环境变量覆盖
-    if os.environ.get("QIDONG_BASE"):
-        cfg["base_url"] = os.environ["QIDONG_BASE"]
-    if os.environ.get("QIDONG_TOKEN"):
-        cfg["token"] = os.environ["QIDONG_TOKEN"]
+    # 2. 环境变量覆盖（同时兼容 QIDONG_* 和 EAR_* 前缀）
+    if os.environ.get("EAR_BASE") or os.environ.get("QIDONG_BASE"):
+        cfg["base_url"] = os.environ.get("EAR_BASE") or os.environ["QIDONG_BASE"]
+    if os.environ.get("EAR_TOKEN") or os.environ.get("QIDONG_TOKEN"):
+        cfg["token"] = os.environ.get("EAR_TOKEN") or os.environ["QIDONG_TOKEN"]
+    if os.environ.get("EAR_DEVICE"):
+        cfg["device"] = os.environ["EAR_DEVICE"]
 
     # 3. 命令行参数覆盖
     for i, arg in enumerate(args):
@@ -104,6 +108,8 @@ def load_config():
             cfg["base_url"] = args[i + 1]
         if arg in ("--token", "-t") and i + 1 < len(args):
             cfg["token"] = args[i + 1]
+        if arg in ("--device", "-d") and i + 1 < len(args):
+            cfg["device"] = args[i + 1]
 
     # 4. 交互式输入
     if not cfg["base_url"] or not cfg["token"]:
@@ -114,7 +120,9 @@ def load_config():
         if not cfg["base_url"]:
             cfg["base_url"] = input("云端地址 (base_url): ").strip().rstrip("/")
         if not cfg["token"]:
-            cfg["token"] = input("认证 Token: ").strip()
+            cfg["token"] = input("设备 Token: ").strip()
+        if not cfg.get("device"):
+            cfg["device"] = input("设备名 (device，默认 win-pc): ").strip() or "win-pc"
         if cfg["base_url"] and cfg["token"]:
             try:
                 with open(cfg_path, "w", encoding="utf-8") as f:
@@ -125,6 +133,9 @@ def load_config():
         else:
             print("✗ base_url 或 token 为空，程序退出。")
             sys.exit(1)
+
+    if not cfg.get("device"):
+        cfg["device"] = "win-pc"
 
     return cfg
 
@@ -204,7 +215,7 @@ def _confirm(action, detail):
         root = tk.Tk()
         root.withdraw()
         result = messagebox.askyesno(
-            f"⚠️ 高危操作确认",
+            "⚠️ 高危操作确认",
             f"类型：{action}\n\n{detail[:500]}\n\n是否允许执行？"
         )
         root.destroy()
@@ -233,7 +244,8 @@ def execute(t):
     logger.info(f"任务 {task_id} · {typ}")
     try:
         if typ == "ping":
-            return _res(f"pong · 主机:{os.environ.get('COMPUTERNAME', '?')} "
+            return _res(f"pong · 设备:{CFG.get('device')} "
+                        f"· 主机:{os.environ.get('COMPUTERNAME', '?')} "
                         f"· 用户:{os.environ.get('USERNAME', '?')} · {sys.version.split()[0]}")
 
         if typ == "read_file":
@@ -429,14 +441,23 @@ def main():
         print("✗ 缺少 base_url 或 token，退出。")
         sys.exit(1)
 
-    logger.info(f"🎀 小耳朵 v{__version__} · 地址 {CFG['base_url']}")
+    logger.info(f"🎀 小耳朵 v{__version__} · 地址 {CFG['base_url']} · 设备 {CFG['device']}")
     logger.info(f"安全设置：shell={CFG['allow_shell']} python={CFG['allow_python']} "
                 f"write={CFG['allow_file_write']} work_dir={CFG.get('work_dir') or '（无限制）'}")
 
     _heartbeat()
+    _last_hb = time.time()
+
     while True:
         try:
-            t = api("/api/task")
+            # 定时心跳（每 heartbeat_interval 秒）
+            hb_interval = CFG.get("heartbeat_interval", 30)
+            if time.time() - _last_hb > hb_interval:
+                _heartbeat()
+                _last_hb = time.time()
+
+            # 领取属于本设备的任务
+            t = api(f"/api/task?device={CFG['device']}")
             if t.get("id"):
                 res = execute(t)
                 api(f"/api/result/{t['id']}", res)
