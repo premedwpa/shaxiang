@@ -1,0 +1,11 @@
+{
+  "base_url": "https://your-tunnel.example.com",
+  "token": "YOUR_PRIVATE_TOKEN_HERE",
+  "poll_interval": 2,
+  "max_file_size": 20971520,
+  "work_dir": "",
+  "allow_shell": false,
+  "allow_python": false,
+  "allow_file_write": false,
+  "log_level": "INFO"
+}
