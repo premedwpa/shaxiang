@@ -1,7 +1,9 @@
 {
   "base_url": "https://your-tunnel.example.com",
   "token": "YOUR_PRIVATE_TOKEN_HERE",
+  "device": "win-pc",
   "poll_interval": 2,
+  "heartbeat_interval": 30,
   "max_file_size": 20971520,
   "work_dir": "",
   "allow_shell": false,
