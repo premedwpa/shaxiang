@@ -1,4 +1,4 @@
-# Qidong Agent
+# Shaxiang Agent
 
 让云端 AI Agent（如智谱清言）远程控制你的 Windows 电脑的本地执行器。
 沙箱ai运行ear_server.py
