@@ -38,9 +38,10 @@
 3. 在你的 Windows 电脑上启动 start.py
 首次运行会提示你输入：
 text
-云端地址 (base_url): https://xxx.trycloudflare.com
-认证 Token: 06528388d8d6bd49
+云端地址 (base_url): https://xxx.com
+认证 Token:
 填完后会自动保存到 config.json。看到下面这行就表示上线成功：
+
 text
 ♡ 心跳已注册
 直接在网站给agent说任务就能自动在你电脑上执行
